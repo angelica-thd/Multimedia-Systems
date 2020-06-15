@@ -1,7 +1,5 @@
 v = VideoReader('catvideo.mp4')
 current = read(v,1);
-last = read(v,v.NumFrames);
-i = 1;
 for i = 1:v.NumFrames
     f = read(v,i);
     figure(1)
@@ -41,8 +39,5 @@ for i = 1:v.NumFrames
     image(error)
     caption = sprintf('Error of frame %d.',i);
     title(caption,'FontSize',14);
-    drawnow;
-        
+    drawnow; 
 end
-
-
