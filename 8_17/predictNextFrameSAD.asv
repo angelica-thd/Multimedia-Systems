@@ -1,0 +1,29 @@
+function [next] = predictNextFrameSAD(targetFrame,referenceFrame)
+
+  %divide current frame into 16x16 macroblocks
+    targetFrame = [targetFrame; repmat(tmp,count,1)]; %add 0-rows to each frame
+    target = mat2cell(targetFrame,16*ones(1,rows/16),16*ones(1,cols/16),rgb);  %divide each frame into a cellarray of 16 blocks
+
+    %divide previous block into 16x16 macroblocks
+    referenceFrame = [referenceFrame; repmat(tmp,count,1)];
+    ref = mat2cell(referenceFrame,16*ones(1,rows/16),16*ones(1,cols/16),rgb);
+
+    %predict next frame using SAD metric
+    for r = 1:size(target,1)
+        for c = 1:size(target,2)
+         [kRows,kCols] = kCoordinates(r,c);                  
+            for k = 1:size(kRows)
+                tmpRow = r+kRows(k);
+                tmpCol = c+kCols(k);                 
+                differ{k} = abs(cell2mat(target(r,c)) - cell2mat(ref(tmpRow,tmpCol)));
+                sad{k}  = cell2mat(sad(k)) + double(cell2mat(differ(k)));                   
+            end
+           min  = minimumSAD(sad);
+           next{r,c} = ref{r+kRows(min),c+kCols(min)};
+           frames{i} = next;
+        end                        
+    end
+     
+    
+end
+
