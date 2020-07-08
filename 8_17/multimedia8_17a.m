@@ -10,7 +10,7 @@ for i = 1:v.NumFrames
     title(caption,'FontSize',10);
     drawnow;
     if i < v.NumFrames
-        diff = read(v,i) - read(v,i+1);
+        diff = read(v,i+1) - read(v,i);
         current = current+diff;
         figure(1)
         subplot(2,2,2);

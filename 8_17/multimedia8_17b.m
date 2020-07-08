@@ -1,8 +1,16 @@
 tic;
 v = VideoReader('catvideo.mp4');
+ [rows,cols,rgb] = size(read(v,1));
+count = 0;
+while rem(rows,16)~=0
+    count = count+1;
+    rows = rows+1;  %count how many rows are missing from the frames in order for mod(rows,16) = 0
+end
+tmp = zeros(1,cols,rgb);
 
 for i = 1:v.NumFrames
     target = read(v,i);
+    
     %show original-framed video
     figure(1)
     subplot(3,2,1);
@@ -25,7 +33,8 @@ for i = 1:v.NumFrames
         %show error frames
         figure(1)
         subplot(2,2,3);
-        error = curr - cell2mat(frames{i});
+        target = [target; repmat(tmp,count,1)]; %add 0-rows to each frame
+        error = target - cell2mat(frames{i});
         image(error);
         caption = sprintf('Error frame %d of %d.',i+1,v.NumFrames);
         title(caption,'FontSize',10);
