@@ -15,6 +15,10 @@ blkMatcher.MatchCriteria = 'Mean absolute difference (MAD)';
 blkMatcher.ReferenceFrameSource = 'Input port';
 halphablend = vision.AlphaBlender;
 
+[last, cmap] = imread('birdGif.gif', numOfFrames);
+rgbLast = uint8(255*ind2rgb(last,cmap));
+lastImage = im2double(rgbLast);
+lastBlocks = mat2cell(lastImage,blkSize*ones(1,s(1)/blkSize),blkSize*ones(1,s(2)/blkSize),3);    %last frame doubled with 3 dimensions for the division to 16x16 blocks
 
 for i = 1:numOfFrames-1
     %take 2 continious frames and convert them to matrices.
@@ -36,13 +40,7 @@ for i = 1:numOfFrames-1
     for r = 1:31
         for c = 1:31
             if motionVectors(r,c) ~= 0
-                if [r,c] > [10,16]      %just to make the coverage of the moving object less discrete in this specific video
-                    currentBlocks{r,c} = currentBlocks{1,32};
-                elseif r > 24
-                        currentBlocks{r,c} = currentBlocks{29,29};
-                else                        
-                    currentBlocks{r,c} = currentBlocks{4,5};
-                end
+               currentBlocks{r,c} = lastBlocks{r,c};
             end
         end                
     end
