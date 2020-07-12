@@ -17,81 +17,50 @@ for r = 1:104
         end
     end
 end
-R = img(:,:,1);
-G = img(:,:,2);
-B = img(:,:,3);
-conIMG = cat(3,R,G,B);
 figure(1)
 subplot(2,1,1);
-imshow(conIMG); %constructed rgb image
-title('Constructed RGB image.');
+img = rgb2gray(img);
+imshow(img); %constructed image
+title('Constructed Image.');
 
 %perform the compression  process: 
-%shift by 128 -> dct2 coefficients -> quantization -> matrix2vector -> huffman encoding
-img = rgb2gray(conIMG);
-shifted_img = double(img) - 128;      %shift image by 128
-[rows,cols,rgb] = size(shifted_img);
-imgBlocks = mat2cell(shifted_img,8*ones(1,rows/8),8*ones(1,cols/8));  %divide image in 8x8 blocks
-for i = 1:13
-    for j = 1:25
-        dct2Blks{i,j} = zeros(8,8);
-    end
-end
+[rows,cols,rgb] = size(img);
+imgBlocks = mat2cell(img,8*ones(1,rows/8),8*ones(1,cols/8));  %divide image in 8x8 blocks
 
-quantization =  [16 12 14 14 18 24 49 72; 
-                11 12 13 17 22 35 64 92;
-                10 14 16 22 37 55 78 95; 
-                16 19 24 29 56 64 87 98;
-                24 26 40 51 68 81 103 112;
-                40 58 57 87 109 104 121 100;
-                49 64 78 89 103 113 120 103;
+
+quantization =  [16 11 10 16 24 40 51 61; 
+                12 12 14 19 26 58 60 55;
+                14 13 16 24 40 58 69 56; 
+                14 17 22 29 51 87 80 62;
+                18 22 37 56 68 109 103 77;
+                24 35 55 64 81 104 113 92;
+                49 64 78 87 103 121 120 101;
                 72 92 95 98 112 100 103 99];
             
 for r = 1:size(imgBlocks,1)
     for c = 1:size(imgBlocks,2)
-        dct2Blks{r,c} = dct2(cell2mat(imgBlocks(r,c)));
-        for blkR = 1:size(dct2Blks{r,c},1)
-            for blkC = 1:size(dct2Blks{r,c},2)
-                quantBlks(blkR,blkC) = round(dct2Blks{r,c}(blkR,blkC)/quantization(blkR,blkC));
-                quantized{r,c} = quantBlks;
-            end
-        end
+        dctMatrix = dctmtx(size(imgBlocks{r,c},1)); %dct matrix of 8x8
+        dct{r,c} = ceil(dctMatrix*cell2mat(imgBlocks(r,c))*dctMatrix');
+        quantized{r,c} = cell2mat(dct(r,c))/quantization;
+        dequantized{r,c} = cell2mat(quantized(r,c))*quantization;                 
+        idct{r,c} = ceil(dctMatrix'*cell2mat(dequantized(r,c))*dctMatrix); 
     end
 end
 
-img2encode = zigzag(cell2mat(quantized));
-[p,edges] = histcounts(img2encode,2,'Normalization','probability');
-[dict,avgLen] = huffmandict(unique(img2encode),p);
-encodedIMG = huffmanenco(img2encode,dict);
-
-%perform the decompression process: 
-%huffman decoding -> vector2matrix > dequantization -> invDCT -> unshift by
-%128
-
-img2decode = huffmandeco(encodedIMG,dict); 
-decodedIMG = invZigzag(img2decode,size(imgRGB,1),size(imgRGB,2));
-decodedBlks = mat2cell(decodedIMG,8*ones(1,rows/8),8*ones(1,cols/8),N);
-
-for r = 1:size(decodedBlks,1)
-    for c = 1:size(decodedBlks,2)
-        for blkR = 1:size(decodedBlks{r,c},1)
-            for blkC = 1:size(decodedBlks{r,c},2)
-                dequantBlks(blkR,blkC) = decodedBlks{r,c}(blkR,blkC)*quantization(blkR,blkC);
-                dequantized{r,c} = dequantBlks;
-            end
-        end
-        reconstructedBlks{r,c} = idct(cell2mat(dequantized(r,c)));
-    end
-end
-
-reconGrayIMG = cell2mat(reconstructedBlks);
-reconGrayIMG = reconGrayIMG + 128;
-reconGrayIMG = uint8(mat2gray(reconGrayIMG)*255);
-map = hsv(256);
+reconIMG = cell2mat(idct);
 figure(1)
 subplot(2,1,2);
-reconRGB = ind2rgb(reconGrayIMG,map);
-imshow(reconRGB,[]);
-title('Decompressed RGB Image');
+imshow(reconIMG);
+title('Dequantized Image');
 
+%further compress the image with Huffman encoding
+img2encode = zigzag(cell2mat(quantized));
+syms = unique(img2encode);
+counts = hist(img2encode,syms);
+p = double(counts)./sum(counts);
+[dict,avgLen] = huffmandict(syms,p);
+compressedIMG = huffmanenco(img2encode,dict);
+
+disp('The compression ratio of the quantized DCT image is:');
+compressionRatio = numel(img) / numel(compressedIMG)
         
